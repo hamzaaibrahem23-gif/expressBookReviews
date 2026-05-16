@@ -1,91 +1,85 @@
-const express = require('express');
-let books = require("./booksdb.js");
-let isValid = require("./auth_users.js").isValid;
-let users = require("./auth_users.js").users;
-const public_users = express.Router();
+const axios = require('axios');
 
+// Replace with your actual server URL
+const BASE_URL = 'http://localhost:5000'; // or your deployed URL
 
-public_users.post("/register", (req,res) => {
-  const { username, password } = req.body;
-  if (!username) {
-    return res.status(400).json({ message: "Username is required" });
+// 1. Get all books
+async function getAllBooks() {
+  try {
+    const response = await axios.get(`${BASE_URL}/`);
+    console.log("All books:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching all books:", error.response?.data || error.message);
+    throw error;
   }
-  if (!password) {
-    return res.status(400).json({ message: "Password is required" });
+}
+
+// 2. Get book by ISBN
+async function getBookByISBN(isbn) {
+  try {
+    const response = await axios.get(`${BASE_URL}/isbn/${isbn}`);
+    console.log(`Book with ISBN ${isbn}:`, response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching book with ISBN ${isbn}:`, error.response?.data || error.message);
+    throw error;
   }
-  const existingUser = users.find(user => user.username === username);
-  if (existingUser) {
-    return res.status(409).json({ message: "Username already exists" });
+}
+
+// 3. Get books by author
+async function getBooksByAuthor(author) {
+  try {
+    const response = await axios.get(`${BASE_URL}/author/${author}`);
+    console.log(`Books by ${author}:`, response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching books by author ${author}:`, error.response?.data || error.message);
+    throw error;
   }
+}
 
-  users.push({ username, password });
-  return res.status(200).json({ message: "User successfully registered" });
-});
-
-// Get the book list available in the shop
-public_users.get('/',function (req, res) {
-  //Write your code here
-  return res.status(300).json({message: "Yet to be implemented"});
-});
-
-// Get book details based on ISBN
-public_users.get('/isbn/:isbn',function (req, res) {
-  const isbn = req.params.isbn;
-
-  // Make sure isbn is a string that exists as a key in `books`
-  if (books[isbn]) {
-    return res.status(200).json(books[isbn]);
-  } else {
-    return res.status(404).json({ message: "Book not found" });
+// 4. Get books by title
+async function getBooksByTitle(title) {
+  try {
+    const response = await axios.get(`${BASE_URL}/title/${title}`);
+    console.log(`Books with title ${title}:`, response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching books with title ${title}:`, error.response?.data || error.message);
+    throw error;
   }
- });
-  
-// Get book details based on author
-public_users.get('/author/:author',function (req, res) {
-  const author = req.params.author;
+}
 
-  const filteredBooks = [];
-  for (const key in books) {
-    if (books[key].author === author) {
-      filteredBooks.push(books[key]);
-    }
+// 5. Get reviews for a book (by ISBN)
+async function getBookReviews(isbn) {
+  try {
+    const response = await axios.get(`${BASE_URL}/review/${isbn}`);
+    console.log(`Reviews for ISBN ${isbn}:`, response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching reviews for ISBN ${isbn}:`, error.response?.data || error.message);
+    throw error;
   }
+}
 
-  if (filteredBooks.length > 0) {
-    return res.status(200).json(filteredBooks);
-  } else {
-    return res.status(404).json({ message: "Book not found" });
-  }
-});
+// Example usage (remove or comment out in production)
+async function main() {
+  await getAllBooks();
+  await getBookByISBN('1');
+  await getBooksByAuthor('Chinua Achebe');
+  await getBooksByTitle('Things Fall Apart');
+  await getBookReviews('1');
+}
 
-// Get all books based on title
-public_users.get('/title/:title',function (req, res) {
-  const title = req.params.title;
+if (require.main === module) {
+  main();
+}
 
-  const filteredBooks = [];
-  for (const key in books) {
-    if (books[key].title === title) {
-      filteredBooks.push(books[key]);
-    }
-  }
-
-  if (filteredBooks.length > 0) {
-    return res.status(200).json(filteredBooks);
-  } else {
-    return res.status(404).json({ message: "Book not found" });
-  }
-});
-
-//  Get book review
-public_users.get('/review/:isbn',function (req, res) {
-  const isbn = req.params.isbn;
-
-  if (books[isbn]) {
-    const bookReviews = books[isbn].reviews;
-    return res.status(200).json(bookReviews);
-  } else {
-    return res.status(404).json({ message: "Book not found" });
-  }
-});
-
-module.exports.general = public_users;
+module.exports = {
+  getAllBooks,
+  getBookByISBN,
+  getBooksByAuthor,
+  getBooksByTitle,
+  getBookReviews
+};
